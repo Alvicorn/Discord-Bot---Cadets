@@ -1,8 +1,11 @@
 # replit
 .replit
-.replit.nix
+replit.nix
 .breakpoints
+
+__pycache__/
 pyproject.toml
+poetry.lock
 
 # config
 .config
