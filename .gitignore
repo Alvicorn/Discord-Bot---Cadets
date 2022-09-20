@@ -1,0 +1,18 @@
+# replit
+.replit
+replit.nix
+.breakpoints
+
+__pycache__/
+pyproject.toml
+poetry.lock
+
+# config
+.config
+venv
+.env
+
+# data in .json files
+db.json
+pages.json
+tags.json
