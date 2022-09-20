@@ -1,0 +1,46 @@
+[
+    {
+        "assignToIDs": [
+            {
+                "name": "FSgt Lee",
+                "id": "Nv|c"
+            },
+            {
+                "name": "CI Tsang",
+                "id": "Vyh~"
+            }
+        ]
+    },
+    {
+        "assignByIDs": [
+            {
+                "name": "FSgt Lee",
+                "id": "ThGL"
+            },
+            {
+                "name": "CI Tsang",
+                "id": "sisM"
+            }
+        ]
+    },
+    {
+        "typeIDs": [
+            {
+                "name": "Ops",
+                "id": ">GBn"
+            },
+            {
+                "name": "Lesson",
+                "id": "mNS:"
+            },
+            {
+                "name": "Admin",
+                "id": "V[Q?"
+            },
+            {
+                "name": "ops",
+                "id": "893cecf4-742e-4112-a656-4da421493067"
+            }
+        ]
+    }
+]
