@@ -1,0 +1,10 @@
+# replit
+.replit
+.replit.nix
+.breakpoints
+pyproject.toml
+
+# config
+.config
+venv
+.env
