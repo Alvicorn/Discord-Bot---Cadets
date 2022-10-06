@@ -157,6 +157,64 @@ def errorMessage(desc):
     return discord.Embed(title="Error!", description=desc, color=RED)
 
 
+# Description: Display all the tasks that have assigned to assignedTo
+async def printPersonTasks(ctx, assignedTo):
+    tasks = []
+    with open("./pages.json") as f:
+        pages = json.load(f)
+
+    for page in pages:
+        assignedList = page["properties"]["Assigned to"]["multi_select"]
+        for tag in assignedList:
+            if tag["name"] == assignedTo:
+                tasks.append(page)
+
+    if len(tasks) == 0:
+        message = discord.Embed(title="Tasks for " + assignedTo + ":",
+                                description="No tasks! Congradulations!",
+                                color=GREEN)
+        await ctx.send(embed=message)
+
+    else:
+        index = 1
+        for task in tasks:
+            assignedToList = []
+            assignedByList = []
+            typeList = []
+
+            for tag in task["properties"]["Assigned to"]["multi_select"]:
+                assignedToList.append(tag["name"])
+
+            for tag in task["properties"]["Assigned by"]["multi_select"]:
+                assignedByList.append(tag["name"])
+
+            for tag in task["properties"]["Type"]["multi_select"]:
+                typeList.append(tag["name"])
+
+            taskName = (
+                task["properties"]["Task"]["title"][0]["text"]["content"])
+            desc = (task["properties"]["Description"]["rich_text"][0]["text"]
+                    ["content"])
+            completion = ("Yes" if
+                          (task["properties"]["Completion"]["checkbox"])
+                          == True else "No")
+            dateTime = task["properties"]["Date"]["date"]["start"]
+            assignedTo = ", ".join(assignedToList)
+            assignedBy = ", ".join(assignedByList)
+            taskType = ", ".join(typeList)
+            url = task["url"]
+            blank = " "
+            t = ("**----- Task: {9} -----**\n>>> " +
+                 "Task Name:\t{6}{6}{6}{0}\n" + "Description:\t{6}{6}{1}\n" +
+                 "Date & Time:\t{6}{2}\n" + "Assigned To:\t{6}{3}\n" +
+                 "Assigned By:\t{4}\n" + "Task Type:\t\t{6}{5}\n" +
+                 "Completion: \t{7}\n" + "Link: \t\t{8}").format(
+                     taskName, desc, dateTime, assignedTo, assignedBy,
+                     taskType, blank, completion, url, index)
+            await ctx.send(t)
+            index += 1
+
+
 #############################
 # Data Validation Functions #
 #############################
@@ -292,7 +350,7 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
-        return
+        print(message.author)
 
     if message.content.startswith("!hello"):
         await message.channel.send("Hello!")
@@ -655,66 +713,25 @@ async def listTasks(ctx, assignedTo):
         list = ", ".join(valid[1:])
         await ctx.send(embed=errorMessage("The following \"Assign To\" tags" +
                                           " are incorrect: \t" + list))
-
-
 # print all tasks assigned to the assignedTo
     else:
-        tasks = []
-        with open("./pages.json") as f:
-            pages = json.load(f)
+        await printPersonTasks(ctx, assignedTo)
 
-        for page in pages:
-            assignedList = page["properties"]["Assigned to"]["multi_select"]
-            for tag in assignedList:
-                print(tag["name"])
-                if tag["name"] == assignedTo:
-                    print("here")
-                    tasks.append(page)
 
-        if len(tasks) == 0:
-            message = discord.Embed(title="Tasks for " + assignedTo + ":",
-                                    description="No tasks! Congradulations!",
-                                    color=GREEN)
-            await ctx.send(embed=message)
+# # Description: List all tasks assigned to the caller
+@bot.command()
+async def listMyTasks(ctx):
+    notionDB.readDatabase()
+    # validate author name
+    valid = listValidation(ctx.author.display_name, 0)
+    if (valid[0] != 0):
+        list = ", ".join(valid[1:])
+        await ctx.send(embed=errorMessage("The following \"Assign To\" tags" +
+                                          " are incorrect: \t" + list))
 
-        else:
-            index = 1
-            for task in tasks:
-                assignedToList = []
-                assignedByList = []
-                typeList = []
 
-                for tag in task["properties"]["Assigned to"]["multi_select"]:
-                    assignedToList.append(tag["name"])
-
-                for tag in task["properties"]["Assigned by"]["multi_select"]:
-                    assignedByList.append(tag["name"])
-
-                for tag in task["properties"]["Type"]["multi_select"]:
-                    typeList.append(tag["name"])
-
-                taskName = task["properties"]["Task"]["title"][0]["text"][
-                    "content"]
-                desc = task["properties"]["Description"]["rich_text"][0][
-                    "text"]["content"]
-                completion = "Yes" if task["properties"]["Completion"][
-                    "checkbox"] == True else "No"
-                dateTime = task["properties"]["Date"]["date"]["start"]
-                assignedTo = ", ".join(assignedToList)
-                assignedBy = ", ".join(assignedByList)
-                taskType = ", ".join(typeList)
-                url = task["url"]
-                blank = " "
-                t = ("**----- Task: {9} -----**\n>>> " +
-                     "Task Name:\t{6}{6}{6}{0}\n" +
-                     "Description:\t{6}{6}{1}\n" + "Date & Time:\t{6}{2}\n" +
-                     "Assigned To:\t{6}{3}\n" + "Assigned By:\t{4}\n" +
-                     "Task Type:\t\t{6}{5}\n" + "Completion: \t{7}\n" +
-                     "Link: \t\t{8}").format(taskName, desc, dateTime,
-                                             assignedTo, assignedBy, taskType,
-                                             blank, completion, url, index)
-
-                await ctx.send(t)
-                index += 1
+# print all tasks assigned to the user that sent the command
+    else:
+        await printPersonTasks(ctx, ctx.author.display_name)
 
 bot.run(os.getenv("TOKEN"))
