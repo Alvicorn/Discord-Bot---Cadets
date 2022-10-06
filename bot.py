@@ -12,6 +12,7 @@ import os
 import datetime as dt
 from datetime import timedelta
 import notionDB
+import botHelper
 import json
 
 #############
@@ -57,162 +58,6 @@ assignToNames = []
 assignByNames = []
 typeNames = []
 tagNames = [assignToNames, assignByNames, typeNames]
-
-####################
-# HELPER FUNCTIONS #
-####################
-
-
-# Description: Read tags.json and format the names for each tag
-# 			   into a list. In addition, update the global
-#			   variable tagNames
-def listTagNames():
-    # load the json file contents
-    notionDB.readDatabase()
-    with open("./tags.json") as f:
-        data = json.load(f)
-
-# store names of assignToIDs
-    list = data[0]["assignToIDs"]
-    assignTo = "**Assign To**: \t"
-    tagNames[0] = []
-    for i in range(0, len(list)):
-        assignTo = assignTo + list[i]["name"] + "\t|\t"
-        tagNames[0].append(list[i]["name"])
-
-# store names of assignByIDs
-    list = data[1]["assignByIDs"]
-    assignBy = "**Assign By**: \t"
-    tagNames[1] = []
-    for i in range(0, len(list)):
-        assignBy = assignBy + list[i]["name"] + "\t|\t"
-        tagNames[1].append(list[i]["name"])
-
-# store names of taskIDs
-    list = data[2]["typeIDs"]
-    taskTypes = "**Task Types**: \t"
-    tagNames[2] = []
-    for i in range(0, len(list)):
-        taskTypes = taskTypes + list[i]["name"] + "\t|\t"
-        tagNames[2].append(list[i]["name"])
-
-    return assignTo + "\n\n" + assignBy + "\n\n" + taskTypes
-
-
-# Description: Create an embed for the caller function to post in a model
-# @param taskName: Specific name of the task
-# @param title: Title of the model
-# @return: embed of the page information
-# Pre-condition: Task name is guaranteed to be in the database
-def displayTaskInfo_name(taskName, title):
-    pageInfo = notionDB.getPage(taskName)
-
-    # extract the page information
-    taskName = pageInfo["name"]
-    desc = pageInfo["description"]
-    completion = "Yes" if pageInfo["completion"] == True else "No"
-    dateTime = pageInfo["dateTime"]
-    assignedTo = ", ".join(pageInfo["assignedTo"])
-    assignedBy = ", ".join(pageInfo["assignedBy"])
-    taskType = ", ".join(pageInfo["taskType"])
-    url = pageInfo["url"]
-    blank = " "
-    task = ("Task Name:\t{6}{6}{6}{0}\n" + "Description:\t{6}{6}{1}\n" +
-            "Date & Time:\t{6}{2}\n" + "Assigned To:\t{6}{3}\n" +
-            "Assigned By:\t{4}\n" + "Task Type:\t\t{6}{5}\n" +
-            "Completion: \t{7}\n" + "Link: \t\t{8}").format(
-                taskName, desc, dateTime, assignedTo, assignedBy, taskType,
-                blank, completion, url)
-
-    return discord.Embed(title=title, description=task, color=PURPLE)
-
-
-# Description: Create an embed for the caller function to post in a model
-# @param data: String of data in the // format
-# @param title: Title of the model
-# @return: embed of the page information
-# Pre-condition: data is guaranteed to be in teh correct format
-def displayTaskInfo_str(data, title):
-    # split the data into its components
-    dataSplit = data.split("//")
-    taskName = dataSplit[0].strip()
-    desc = dataSplit[1].strip()
-    dateTime = dataSplit[2].strip()
-    assignedTo = dataSplit[3].strip()
-    assignedBy = dataSplit[4].strip()
-    taskType = dataSplit[5].strip()
-
-    # create embed
-    blank = " "
-    task = ("Task Name:\t{6}{6}{6}{0}\n" + "Description:\t{6}{6}{1}\n" +
-            "Date & Time:\t{6}{2}\n" + "Assigned To:\t{6}{3}\n" +
-            "Assigned By:\t{4}\n" + "Task Type:\t\t{6}{5}").format(
-                taskName, desc, dateTime, assignedTo, assignedBy, taskType,
-                blank)
-    return discord.Embed(title=title, description=task, color=GREEN)
-
-
-# Description: Create an embed for an error
-def errorMessage(desc):
-    return discord.Embed(title="Error!", description=desc, color=RED)
-
-
-# Description: Display all the tasks that have assigned to assignedTo
-async def printPersonTasks(ctx, assignedTo):
-    tasks = []
-    with open("./pages.json") as f:
-        pages = json.load(f)
-
-    for page in pages:
-        assignedList = page["properties"]["Assigned to"]["multi_select"]
-        for tag in assignedList:
-            if tag["name"] == assignedTo:
-                tasks.append(page)
-
-    if len(tasks) == 0:
-        message = discord.Embed(title="Tasks for " + assignedTo + ":",
-                                description="No tasks! Congradulations!",
-                                color=GREEN)
-        await ctx.send(embed=message)
-
-    else:
-        index = 1
-        for task in tasks:
-            assignedToList = []
-            assignedByList = []
-            typeList = []
-
-            for tag in task["properties"]["Assigned to"]["multi_select"]:
-                assignedToList.append(tag["name"])
-
-            for tag in task["properties"]["Assigned by"]["multi_select"]:
-                assignedByList.append(tag["name"])
-
-            for tag in task["properties"]["Type"]["multi_select"]:
-                typeList.append(tag["name"])
-
-            taskName = (
-                task["properties"]["Task"]["title"][0]["text"]["content"])
-            desc = (task["properties"]["Description"]["rich_text"][0]["text"]
-                    ["content"])
-            completion = ("Yes" if
-                          (task["properties"]["Completion"]["checkbox"])
-                          == True else "No")
-            dateTime = task["properties"]["Date"]["date"]["start"]
-            assignedTo = ", ".join(assignedToList)
-            assignedBy = ", ".join(assignedByList)
-            taskType = ", ".join(typeList)
-            url = task["url"]
-            blank = " "
-            t = ("**----- Task: {9} -----**\n>>> " +
-                 "Task Name:\t{6}{6}{6}{0}\n" + "Description:\t{6}{6}{1}\n" +
-                 "Date & Time:\t{6}{2}\n" + "Assigned To:\t{6}{3}\n" +
-                 "Assigned By:\t{4}\n" + "Task Type:\t\t{6}{5}\n" +
-                 "Completion: \t{7}\n" + "Link: \t\t{8}").format(
-                     taskName, desc, dateTime, assignedTo, assignedBy,
-                     taskType, blank, completion, url, index)
-            await ctx.send(t)
-            index += 1
 
 
 #############################
@@ -289,7 +134,7 @@ def taskNameExists(taskName):
 #		   (index 1) == error message
 # Pre-condition: listNum is within {0,1,2}
 def listValidation(str_list, listNum):
-    listTagNames()
+    botHelper.listTagNames(tagNames)
     ret = [0]  # return list with a valid bit
     list = tagNames[listNum]
 
@@ -351,26 +196,8 @@ async def on_ready():
 async def on_message(message):
     if message.author == bot.user:
         print(message.author)
-
     if message.content.startswith("!hello"):
         await message.channel.send("Hello!")
-
-    if message.content.startswith("!see tags"):
-        embed = discord.Embed(title="Avaliable Tags for Task Creation",
-                              description=listTagNames(),
-                              color=PURPLE)
-        # print(tagNames)
-        await message.channel.send(embed=embed)
-
-    if message.content.startswith("!see fields"):
-        embed = discord.Embed(title="Avaliable Fields",
-                              description="1:\tTask Name\n" +
-                              "2:\tDescription\n" + "3:\tDate & Time\n" +
-                              "4:\tAssigned To\n" + "5:\tAssigned By\n" +
-                              "6:\tTask Type\n" + "7:\tCompletion",
-                              color=PURPLE)
-        await message.channel.send(embed=embed)
-
     await bot.process_commands(message)
 
 
@@ -401,28 +228,31 @@ async def newTask(ctx, data):
     taskTypeValid = listValidation(taskType, 2) if taskType != "" else [0]
 
     if taskNameMsg == True:
-        await ctx.send(embed=errorMessage(taskName +
-                                          " is a name used for another task"))
+        await botHelper.errorMessage(
+            ctx, taskName + " is a name used for another task")
     elif dtMsg != " ":
-        await ctx.send(embed=errorMessage(dtMsg))
+        await botHelper.errorMessage(ctx, dtMsg)
     elif assignToValid[0] == -1:
-        await ctx.send(embed=errorMessage("No \"Assign To\" tags avaliable"))
+        await botHelper.errorMessage(ctx, "No \"Assign To\" tags avaliable")
     elif assignByValid[0] == -1:
-        await ctx.send(embed=errorMessage("No \"Assign By\" tags avaliable"))
+        await botHelper.errorMessage(ctx, "No \"Assign By\" tags avaliable")
     elif taskTypeValid[0] == -1:
-        await ctx.send(embed=errorMessage("No \"Task Type\" tags avaliable"))
+        await botHelper.errorMessage(ctx, "No \"Task Type\" tags avaliable")
     elif assignToValid[0] == 1:
         list = ", ".join(assignToValid[1:])
-        await ctx.send(embed=errorMessage("The following \"Assign To\" tags" +
-                                          " are incorrect: \t" + list))
+        await botHelper.errorMessage(
+            ctx,
+            "The following \"Assign To\" tags" + " are incorrect: \t" + list)
     elif assignByValid[0] == 1:
         list = ", ".join(assignByValid[1:])
-        await ctx.send(embed=errorMessage("The following \"Assign By\" tags" +
-                                          " are incorrect: \t" + list))
+        await botHelper.errorMessage(
+            ctx,
+            "The following \"Assign By\" tags" + " are incorrect: \t" + list)
     elif taskTypeValid[0] == 1:
         list = ", ".join(taskTypeValid[1:])
-        await ctx.send(embed=errorMessage("The following \"Task Type\" tags" +
-                                          " are incorrect: \t" + list))
+        await botHelper.errorMessage(
+            ctx,
+            "The following \"Task Type\" tags" + " are incorrect: \t" + list)
     else:
         # parse dateTime
         dateTime = (dt.datetime.today().replace(int("20" + dateTime[7:9]),
@@ -461,12 +291,12 @@ async def newTask(ctx, data):
         if status == 200:
             notionDB.readDatabase()
             title = "*" + taskName.capitalize() + "*" + " is posted to Notion"
-            await ctx.send(embed=displayTaskInfo_str(data, title))
+            await botHelper.displayTaskInfo_str(ctx, data, title)
         else:
             desc = (taskName.capitalize() + " could not be posted. " +
                     "Ask ask CI Tsang for help or report it to" +
                     " the channel *bot-errors*")
-            await ctx.send(embed=errorMessage(desc))
+            await botHelper.errorMessage(ctx, desc)
 
 
 # Description: Get a task from the Notion database and display its contents
@@ -475,16 +305,15 @@ async def newTask(ctx, data):
 async def getTask(ctx, taskName):
     msg = taskNameExists(taskName)
     if msg == False:
-        await ctx.send(embed=errorMessage("Task name does not exist"))
+        await botHelper.errorMessage(ctx, "Task name does not exist")
     else:
-        embed = displayTaskInfo_name(taskName, "Task Request")
-        await ctx.send(embed=embed)
+        await botHelper.displayTaskInfo_name(ctx, taskName, "Task Request")
 
 
 # Description: Update a task that has already been added to Notion
 # @param data: information about the event delimitted by //.
 # Pre-condition: data should follow the format -->
-# 	$newTask "taskName//field//info"
+# 	$updateTask "taskName//field//info"
 @bot.command()
 async def updateTask(ctx, data):
     # split data into it's values
@@ -496,7 +325,7 @@ async def updateTask(ctx, data):
     # validate that the task name exists
     exists = taskNameExists(taskName)
     if exists == False:
-        await ctx.send(embed=errorMessage("Task name does not exist"))
+        await botHelper.errorMessage(ctx, "Task name does not exist")
     else:
         # determine the field code and validate the data
         # field is enumerated such that:
@@ -587,56 +416,56 @@ async def updateTask(ctx, data):
             desc = (
                 "field name does not exist. " +
                 "Use command \"$see field\" to see all possible field names")
-            await ctx.send(embed=errorMessage(desc))
+            await botHelper.errorMessage(ctx, desc)
         elif fieldCode == -1:
-            await ctx.send(embed=errorMessage(msg))
+            await botHelper.errorMessage(ctx, msg)
         else:
             notionDB.updatePage(taskName, fieldCode, info)
             notionDB.readDatabase()
-            embed = displayTaskInfo_name(taskName, "Task Updated!")
-            await ctx.send(embed=embed)
+            await botHelper.displayTaskInfo_name(ctx, taskName,
+                                                 "Task Updated!")
 
 
 @bot.command()
 async def deleteTask(ctx, taskName):
     msg = taskNameExists(taskName)
     if msg == False:
-        await ctx.send(embed=errorMessage("Task name does not exist"))
+        await botHelper.rrorMessage(ctx, "Task name does not exist")
     else:
         deleteList.append(taskName)
-        embed = displayTaskInfo_name(taskName, taskName + " Pending Deletion")
-        await ctx.send(embed=embed)
+        await botHelper.displayTaskInfo_name(ctx, taskName,
+                                             taskName + " Pending Deletion")
 
 
 @bot.command()
 async def confirmDeleteTask(ctx, taskName):
     if len(deleteList) < 1:  # pendingList is empty
-        await ctx.send(embed=errorMessage("No tasks are pending deletion"))
+        await botHelper.errorMessage(ctx, "No tasks are pending deletion")
     elif taskNameExists(taskName) == False:
-        await ctx.send(
-            embed=errorMessage("Task name does not exist\n" +
-                               "Use `$listDeleteTask` to view" +
-                               " the list of tasks that are pending deletion"))
+        await botHelper.errorMessage(
+            ctx,
+            "Task name does not exist\n" + "Use `$listDeleteTask` to view" +
+            " the list of tasks that are pending deletion")
     else:
         if taskName not in deleteList:
-            await ctx.send(
-                embed=errorMessage(taskName=" is not pending for deletion.\n" +
-                                   "use `$deleteTask \"task name\"` to put" +
-                                   " the task up for deletion"))
+            botHelper.errorMessage(
+                ctx, taskName + " is not pending for deletion.\n" +
+                "use `$deleteTask \"task name\"` to put" +
+                " the task up for deletion")
         else:  # Delete task from Notion
-            title = "Task Removed from Notion"
-            e = displayTaskInfo_name(taskName, title)
-
             res = notionDB.deletePage(taskName)
             if res == 200:
                 deleteList.remove(taskName)
                 notionDB.readDatabase()
-                await ctx.send(embed=e)
+                embed = discord.Embed(title=taskName + " Removed!",
+                                      description="",
+                                      color=PURPLE)
+                await ctx.send(embed=embed)
             else:
                 desc = (taskName + " could not be deleted from Notion. " +
                         "Ask ask CI Tsang for help or report it to" +
                         " the channel *bot-errors*")
-                await ctx.send(embed=errorMessage(desc))
+                botHelper.errorMessage(ctx, desc)
 
 
 # Description: List all tasks that are pending deletion
@@ -644,7 +473,7 @@ async def confirmDeleteTask(ctx, taskName):
 async def listDeleteTasks(ctx):
     # pendingList is empty
     if len(deleteList) < 1:
-        await ctx.send(embed=errorMessage("No tasks pending deletion!"))
+        await botHelper.errorMessage(ctx, "No tasks pending deletion!")
     # display on items in the pendingList
     else:
         index = 1
@@ -688,10 +517,10 @@ async def completeTask(ctx, taskName):
     else:
         notionDB.updatePage(taskName, 7, True)
         notionDB.readDatabase()
-        embed = displayTaskInfo_name(taskName, "Task Updated!")
-        await ctx.send(embed=embed)
+        await botHelper.displayTaskInfo_name(ctx, taskName, "Task Updated!")
 
 
+# Description: List all fields for a task
 @bot.command()
 async def listFields(ctx):
     embed = discord.Embed(title="Avaliable Fields",
@@ -699,6 +528,15 @@ async def listFields(ctx):
                           "3:\tDate & Time\n" + "4:\tAssigned To\n" +
                           "5:\tAssigned By\n" + "6:\tTask Type\n" +
                           "7:\tCompletion",
+                          color=PURPLE)
+    await ctx.send(embed=embed)
+
+
+# Description: List avaliable tags for assignedTo, assignedBy and type
+@bot.command()
+async def listTags(ctx):
+    embed = discord.Embed(title="Avaliable Tags for Task Creation",
+                          description=botHelper.listTagNames(tagNames),
                           color=PURPLE)
     await ctx.send(embed=embed)
 
@@ -711,11 +549,12 @@ async def listTasks(ctx, assignedTo):
     valid = listValidation(assignedTo, 0)
     if (valid[0] != 0):
         list = ", ".join(valid[1:])
-        await ctx.send(embed=errorMessage("The following \"Assign To\" tags" +
-                                          " are incorrect: \t" + list))
+        await botHelper.errorMessage(
+            ctx,
+            "The following \"Assign To\" tags" + " are incorrect: \t" + list)
 # print all tasks assigned to the assignedTo
     else:
-        await printPersonTasks(ctx, assignedTo)
+        await botHelper.printPersonTasks(ctx, assignedTo)
 
 
 # # Description: List all tasks assigned to the caller
@@ -726,12 +565,15 @@ async def listMyTasks(ctx):
     valid = listValidation(ctx.author.display_name, 0)
     if (valid[0] != 0):
         list = ", ".join(valid[1:])
-        await ctx.send(embed=errorMessage("The following \"Assign To\" tags" +
-                                          " are incorrect: \t" + list))
-
-
+        await botHelper.errorMessage(
+            ctx,
+            "The following \"Assign To\" tags" + " are incorrect: \t" + list)
 # print all tasks assigned to the user that sent the command
     else:
-        await printPersonTasks(ctx, ctx.author.display_name)
+        await botHelper.printPersonTasks(ctx, 
+										 ctx.author.display_name)
+
+
+# run the bot
 
 bot.run(os.getenv("TOKEN"))
