@@ -11,9 +11,11 @@ from discord.ext import commands
 import os
 import datetime as dt
 from datetime import timedelta
+import json
+
 import notionDB
 import botHelper
-import json
+from keepAlive import keep_alive
 
 #############
 # CONSTANTS #
@@ -58,7 +60,6 @@ assignToNames = []
 assignByNames = []
 typeNames = []
 tagNames = [assignToNames, assignByNames, typeNames]
-
 
 #############################
 # Data Validation Functions #
@@ -109,14 +110,15 @@ def validDateTime(date_txt):
 # @param taskName: Name of a task
 # @return: If taskName exists, return true, false otherwise
 def taskNameExists(taskName):
+    notionDB.readDatabase()
     ret = False
     with open("./pages.json") as f:
         pages = json.load(f)
 
     for page in pages:
-        if (page["properties"]["Task"]["title"][0]["text"]["content"].lower()
-                == taskName.lower()):
-            ret = True
+	    if (page["properties"]["Task"]["title"][0]["text"]["content"].lower()
+            == taskName.lower()):
+		    ret = True
 
     return ret
 
@@ -430,7 +432,7 @@ async def updateTask(ctx, data):
 async def deleteTask(ctx, taskName):
     msg = taskNameExists(taskName)
     if msg == False:
-        await botHelper.rrorMessage(ctx, "Task name does not exist")
+        await botHelper.errorMessage(ctx, "Task name does not exist")
     else:
         deleteList.append(taskName)
         await botHelper.displayTaskInfo_name(ctx, taskName,
@@ -448,7 +450,7 @@ async def confirmDeleteTask(ctx, taskName):
             " the list of tasks that are pending deletion")
     else:
         if taskName not in deleteList:
-            botHelper.errorMessage(
+            await botHelper.errorMessage(
                 ctx, taskName + " is not pending for deletion.\n" +
                 "use `$deleteTask \"task name\"` to put" +
                 " the task up for deletion")
@@ -465,7 +467,7 @@ async def confirmDeleteTask(ctx, taskName):
                 desc = (taskName + " could not be deleted from Notion. " +
                         "Ask ask CI Tsang for help or report it to" +
                         " the channel *bot-errors*")
-                botHelper.errorMessage(ctx, desc)
+                await botHelper.errorMessage(ctx, desc)
 
 
 # Description: List all tasks that are pending deletion
@@ -570,10 +572,9 @@ async def listMyTasks(ctx):
             "The following \"Assign To\" tags" + " are incorrect: \t" + list)
 # print all tasks assigned to the user that sent the command
     else:
-        await botHelper.printPersonTasks(ctx, 
-										 ctx.author.display_name)
+        await botHelper.printPersonTasks(ctx, ctx.author.display_name)
 
 
 # run the bot
-
+keep_alive() # run the websever
 bot.run(os.getenv("TOKEN"))

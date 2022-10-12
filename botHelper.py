@@ -14,12 +14,9 @@ from datetime import timedelta
 import json
 import notionDB
 
-
 #############
 # CONSTANTS #
 #############
-
-
 
 # colours
 GREEN = 0x3bcc42
@@ -31,8 +28,9 @@ YELLOW = 0xFFFF00
 # HELPER FUNCTIONS #
 ####################
 
-# Description: Read tags.json and format the names for each 
-# 			   tag into a list. In addition, update the 
+
+# Description: Read tags.json and format the names for each
+# 			   tag into a list. In addition, update the
 # 			   global variable tagNames
 def listTagNames(tagNames):
     # load the json file contents
@@ -96,7 +94,6 @@ async def displayTaskInfo_name(ctx, taskName, title):
     await ctx.send(embed=embed)
 
 
-
 # Description: Create an embed for the caller function to post in a model
 # @param data: String of data in the // format
 # @param title: Title of the model
@@ -114,26 +111,19 @@ async def displayTaskInfo_str(ctx, data, title):
 
     # create embed
     blank = " "
-    task = ("Task Name:\t{6}{6}{6}{0}\n" + 
-			"Description:\t{6}{6}{1}\n" +
-            "Date & Time:\t{6}{2}\n" + 
-			"Assigned To:\t{6}{3}\n" +
-            "Assigned By:\t{4}\n" + 
-			"Task Type:\t\t{6}{5}").format(
-                taskName, desc, dateTime, 
-		assignedTo, assignedBy, taskType,
+    task = ("Task Name:\t{6}{6}{6}{0}\n" + "Description:\t{6}{6}{1}\n" +
+            "Date & Time:\t{6}{2}\n" + "Assigned To:\t{6}{3}\n" +
+            "Assigned By:\t{4}\n" + "Task Type:\t\t{6}{5}").format(
+                taskName, desc, dateTime, assignedTo, assignedBy, taskType,
                 blank)
     embed = discord.Embed(title=title, description=task, color=GREEN)
-    ctx.send(embed=embed)
+    await ctx.send(embed=embed)
+
 
 # Description: Create an embed for an error
-def errorMessage(ctx, desc):
-    embed = discord.Embed(title="Error!", 
-						  description=desc, 
-						  color=RED)
-    ctx.send(embed)
-
-
+async def errorMessage(ctx, desc):
+    embed = discord.Embed(title="Error!", description=desc, color=RED)
+    await ctx.send(embed=embed)
 
 
 # Description: Display all the tasks that have assigned to assignedTo
