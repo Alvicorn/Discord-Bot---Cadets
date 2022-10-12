@@ -221,6 +221,21 @@ List all of the tasks assigned to the user who entered this command
 ```
 ___
 </details>
+<details>
+    <summary>List bot commands</summary>
+
+```Shell
+>>> $listCommands
+```
+
+List all commands recogized by the bot
+
+``` Shell
+# Example: List all bot commands
+>>> $listCommands
+```
+___
+</details>
 
 
 
