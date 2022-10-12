@@ -116,9 +116,9 @@ def taskNameExists(taskName):
         pages = json.load(f)
 
     for page in pages:
-	    if (page["properties"]["Task"]["title"][0]["text"]["content"].lower()
-            == taskName.lower()):
-		    ret = True
+        if (page["properties"]["Task"]["title"][0]["text"]["content"].lower()
+                == taskName.lower()):
+            ret = True
 
     return ret
 
@@ -570,11 +570,34 @@ async def listMyTasks(ctx):
         await botHelper.errorMessage(
             ctx,
             "The following \"Assign To\" tags" + " are incorrect: \t" + list)
+
+
 # print all tasks assigned to the user that sent the command
     else:
         await botHelper.printPersonTasks(ctx, ctx.author.display_name)
 
 
+@bot.command()
+async def listCommands(ctx):
+    msg = (
+        "**$newTask**             --> create a new task for Notion\n" +
+        "**$getTask**             --> view a specific task from Notion\n" +
+        "**$updateTask**          --> update a task's information\n" +
+        "**$completeTask**        --> mark a task as complete\n" +
+        "**$deleteTask**          --> mark a task for deletion\n" +
+        "**$confirmDeleteTask**   --> delete a task from Notion\n" +
+        "**$listDeleteTasks**     --> view all tasks marked for deletion\n" +
+        "**$listFields**          --> view all Notion header\n" +
+        "**$listTags**            --> view all tags for Assigned To, Assigned By and  Type headers\n"
+        +
+        "**$listTasks**           --> view all tasks assigned to a particular person\n"
+        + "**$listMyTasks**         --> view all tasks assigned to you\n" +
+        "**$listCommands**        --> view all bot commands\n")
+
+    embed = discord.Embed(title="Bot Commands", description=msg, color=PURPLE)
+    await ctx.send(embed=embed)
+
+
 # run the bot
-keep_alive() # run the websever
+keep_alive()  # run the websever
 bot.run(os.getenv("TOKEN"))
